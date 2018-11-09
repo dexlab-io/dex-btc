@@ -19,6 +19,12 @@ yarn add react-native-randombytes buffer-reverse buffer@5
 yarn add https://github.com/dexlab-io/dex-btc
 ```
 
+React-native ready-fork of `bip39` and `bitcoinjs-lib`
+
+```sh
+yarn add https://github.com/vulpemventures/bitcoinjs-lib.git https://github.com/vulpemventures/bip39
+```
+
 - RN Nodefy
 
 ```sh
