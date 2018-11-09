@@ -2,7 +2,7 @@
 
 Bitcoin wallet helpers for React Native 
 
-# Usage 
+# Install 
 
 Prepare your React Native app following [those steps](docs/react-native.md)
 
@@ -16,7 +16,7 @@ Create a `BitcoinWallet` instance
 
 ```js
 const Wallet  = require("dex-btc")
-const wallet  = new Bitcoin3("testnet")
+const wallet  = new Wallet("testnet")
 
 //OPTIONAL: default blockcypher API
 wallet.setProvider("blockcypher")
@@ -41,7 +41,9 @@ console.log(wallet.defaultAccount)
 ```
 
 
-Send a transaction to a Bitcoin address
+Send a transaction to a 
+
+address
 ```js
 //Send the actual transaction to an address with the amount of satoshi comprhensive of actual value + fee
 wallet.sendTransaction(addressTo, 20000).then(console.log).catch(console.log)
