@@ -1,0 +1,187 @@
+const {
+  FEES_URI,
+  NETWORKS,
+  PROVIDERS,
+  ERROR_MESSAGE
+} = require("./config/constants");
+
+const bitcoin = require("bitcoinjs-lib");
+
+class BitcoinWallet {
+
+  constructor(network, provider) {
+
+    if (!bitcoin) 
+      throw ERROR_MESSAGE.bitcoinRequired;
+      
+    if (!provider)
+      provider = "blockcypher";
+      
+    this.bitcoin = bitcoin;
+    this.provider = provider; 
+
+    this.network = network || "testnet";
+    this.defaultAccount = undefined;
+  }
+
+  setProvider(provider) {
+    this.provider = provider;
+  }
+
+  setNetwork(network) {
+    this.network = network;
+  }
+
+  privateKeyToAccount(privateKey) {
+    let keyPair;
+    try {
+      keyPair = this.bitcoin.ECPair.fromWIF(privateKey, NETWORKS[this.network].object);
+    } catch (e) {
+      throw ERROR_MESSAGE.validAddress;
+    }
+
+    const { address } = bitcoin.payments.p2pkh({ 
+      pubkey: keyPair.publicKey, 
+      network: NETWORKS[this.network].object 
+    });
+
+    this.defaultAccount = Object.seal({
+      address,
+      privateKey,
+      keyPair
+    });
+
+    return this.defaultAccount;
+  }
+
+  createMultisig(publicKeys, m) {
+    const network = NETWORKS[this.network].object;
+    const pubkeys = publicKeys.map((hex) => Buffer.from(hex, 'hex'));
+    const { address } = bitcoin.payments.p2sh({
+      network, 
+      redeem: bitcoin.payments.p2ms({ m, pubkeys, network})
+    });
+
+    return address;
+  }
+
+  isValidAddress(address) {
+    try {
+      this.bitcoin.address.toOutputScript(address, NETWORKS[this.network].object)
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+
+  // If you want to set a conservative limit, 181 bytes per input + 34 bytes per output + 10 bytes seems like a good bet
+  // https://bitcointalk.org/index.php?topic=124302.msg1336553#msg1336553
+  getTxSize(vin, vout) {
+    return vin * 180 + vout * 34 + 10 + vin;
+  }
+
+  getBalance(address) {
+    if (!this.isValidAddress(address)) throw ERROR_MESSAGE.validAddress;
+
+
+    const uri = `${PROVIDERS[this.provider]}${NETWORKS[this.network].string}/addrs/${address}/balance`;
+    
+    return fetch(uri)
+      .then(response => response.json())
+      .then(r => r.final_balance);
+  }
+
+
+  /**
+   * estimateFee
+   * @returns <Number> Sathosi per byte
+   */
+  estimateFee() {
+    //Only mainnet, there are barely no fees on testnet
+    return fetch(FEES_URI)
+      .then(response => response.json())
+      .then(r => r.fastestFee);
+  }
+
+  getUtxo(address) {
+    if (!this.isValidAddress(address)) throw ERROR_MESSAGE.validAddress;
+
+    const uri = `${PROVIDERS[this.provider]}${NETWORKS[this.network].string}/addrs/${address}?unspentOnly=true`;
+
+    return fetch(uri)
+    .then(response => response.json())    
+    .then(r => r.txrefs.map(tx => Object.seal({
+      txid: tx.tx_hash,
+      vout: tx.tx_output_n,
+      satoshis: tx.value,
+      confirmations: tx.confirmations
+    })));
+  }
+
+  sendTransaction(to, value, dryRun) {
+    dryRun = dryRun || false;
+    if (!this.defaultAccount) throw ERROR_MESSAGE.defaultAccount;
+    if (!to) throw ERROR_MESSAGE.recipient;
+    if (!this.isValidAddress(to)) throw ERROR_MESSAGE.validAddress;
+    if (!value || isNaN(value)) throw ERROR_MESSAGE.number;
+
+    return Promise.all([
+      this.estimateFee(),
+      this.getUtxo(this.defaultAccount.address)
+    ]).then((res) => {
+      const feePerByte = res[0];
+      const utxos = res[1];
+
+      //Setup inputs from utxos
+      const tx = new this.bitcoin.TransactionBuilder(NETWORKS[this.network].object);
+      let ninputs = 0;
+      let availableSat = 0;
+
+      for (let i = 0; i < utxos.length; i++) {
+        const utxo = utxos[i];
+        if (utxo.confirmations >= 3) {
+          tx.addInput(utxo.txid, utxo.vout);
+          availableSat += utxo.satoshis;
+          ninputs++;
+
+          if (availableSat >= value) 
+            break;
+        }
+      }
+
+      if (availableSat < value) 
+        throw "You do not have enough in your wallet";
+
+      const change = availableSat - value;
+      const fee = this.getTxSize(ninputs, change > 0 ? 2 : 1) * feePerByte;
+
+      if (fee > value) 
+        throw "Satoshis amount must be larger than the fee";
+
+      tx.addOutput(to, value - fee);
+
+      if (change > 0) 
+        tx.addOutput(this.defaultAccount.address, change);
+
+      for (let i = 0; i < ninputs; i++) {
+        tx.sign(i, this.defaultAccount.keyPair);
+      }
+      const hexTx = tx.build().toHex();
+
+
+      if (dryRun) {
+        return Promise.resolve(hexTx);
+      } else {
+        const body = { tx: hexTx };
+        const uri = `${PROVIDERS[this.provider]}${NETWORKS[this.network].string}/txs/push`;
+        return fetch(uri, { method: "POST", body })
+          .then(response => response.json())        
+          .then(r => r.tx);
+      }
+    })
+  }
+
+}
+
+module.exports = BitcoinWallet;

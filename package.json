@@ -1,11 +1,10 @@
 {
   "name": "dex-btc",
   "version": "0.0.1",
-  "description": "Alpha Bitcoin utils for wallets",
-  "main": "index.js",
+  "description": "Bitcoin utils for wallets",
+  "main": "src/index.js",
   "scripts": {
-    "postinstall": "node_modules/.bin/rn-nodeify --install stream,buffer,events,assert --hack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/index.js"
   },
   "repository": {
     "type": "git",
@@ -26,8 +25,5 @@
   "dependencies": {
     "bip39": "git+https://github.com/vulpemventures/bip39.git",
     "bitcoinjs-lib": "git+https://github.com/vulpemventures/bitcoinjs-lib.git"
-  },
-  "devDependencies": {
-    "rn-nodeify": "^10.0.0"
   }
 }
