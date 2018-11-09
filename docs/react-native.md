@@ -13,16 +13,10 @@ react-native init myReactNativeBitcoinWallet
 yarn add react-native-randombytes buffer-reverse buffer@5
 ```
 
-React-native ready-fork of `bip39` and `bitcoinjs-lib`
-
-```sh
-yarn add https://github.com/vulpemventures/bitcoinjs-lib.git https://github.com/vulpemventures/bip39
-```
-
 - RN Nodefy
 
 ```sh
-yarn add --dev rn-nodefy
+yarn add --dev rn-nodeify
 ```
 
 - Add the following postinstall to your script in package.json:
