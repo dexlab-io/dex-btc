@@ -13,6 +13,12 @@ react-native init myReactNativeBitcoinWallet
 yarn add react-native-randombytes buffer-reverse buffer@5
 ```
 
+- Install dex-btc
+
+```sh
+yarn add https://github.com/dexlab-io/dex-btc
+```
+
 - RN Nodefy
 
 ```sh
