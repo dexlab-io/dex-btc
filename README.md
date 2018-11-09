@@ -1,29 +1,14 @@
 # dex-btc
 
-# Development
-
-### Requirements
-
-* Node/npm >= 8 
-
-
-### Install
-
-Install Dependencies 
-
-```sh
-npm install
-```
-
-# Deployment
-
-TBD
-
+Bitcoin wallet helpers for React Native 
 
 # Usage 
 
-API documentation can be found [here](docs/api.md)
+Prepare your React Native app following [those steps](docs/react-native.md)
 
+# API 
+
+API documentation can be found [here](docs/api.md)
 
 # Quickstart
 
@@ -63,4 +48,18 @@ wallet.sendTransaction(addressTo, 20000).then(console.log).catch(console.log)
 
 ```
 
+
+# Development
+
+### Requirements
+
+* Node/npm >= 8 
+
+### Install
+
+Install Dependencies 
+
+```sh
+npm install
+```
 
